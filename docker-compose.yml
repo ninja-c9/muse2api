@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  muse2api:
+    build: .
+    image: muse2api:latest
+    container_name: muse2api
+    restart: always
+    ports:
+      - "127.0.0.1:18610:18610"
+    environment:
+      # Admin & API bearer key (read from .env or host env; auto-generated if empty)
+      - MUSE2API_KEY=${MUSE2API_KEY:-}
+      # Public base URL, e.g. https://your-domain.com (auto-detected if empty)
+      - MUSE2API_PUBLIC_BASE=
+      # Timeouts (seconds)
+      - MUSE2API_IMAGE_TIMEOUT=240
+      - MUSE2API_VIDEO_TIMEOUT=600
+      - MUSE2API_CHAT_TIMEOUT=300
+      - MUSE2API_LOGIN_WAIT=${MUSE2API_LOGIN_WAIT:-420}
+      - MUSE2API_TOOL_PROTOCOL=${MUSE2API_TOOL_PROTOCOL:-1}
+    volumes:
+      # Persist account credentials, task logs, and generated media files
+      - ./data:/app/data
+    shm_size: '2gb' # Prevent Chromium multi-tab rendering crashes from /dev/shm exhaustion

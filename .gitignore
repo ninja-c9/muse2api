@@ -1,0 +1,42 @@
+# Go build artifacts
+/muse2api
+*.test
+*.out
+
+# Environment & Credentials
+.env
+.env.local
+*.key
+*.pem
+
+# Runtime & User Data
+data/accounts.json
+data/tasks.json
+data/.installed_sha
+data/debug-*.json
+data/media/*
+!data/media/.gitkeep
+data/downloads/*
+!data/downloads/.gitkeep
+# 临时邮箱账号（含明文密码，用于接收 muse.ai 登录验证码）——绝不入库
+data/mail_accounts.txt
+chrome-profile/
+muse2api-profiles/
+
+# Logs & Backups
+*.log
+*.bak
+*.bak*
+*.swp
+*~
+
+# IDE & OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Archives
+*.zip
+*.tar.gz
+*.tar

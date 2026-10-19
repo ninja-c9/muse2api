@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Muse.ai Request / Response & Tool Call Inspector",
+  "version": "1.0.0",
+  "description": "Bắt toàn bộ WebSocket, Fetch, XHR, SSE trên muse.ai để kiểm tra cấu trúc Request/Response và Tool Call thực tế.",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://muse.ai/*",
+    "https://*.muse.ai/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://muse.ai/*",
+        "https://*.muse.ai/*"
+      ],
+      "js": ["inspector.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    }
+  ]
+}

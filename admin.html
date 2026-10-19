@@ -1,0 +1,1403 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>muse2api · Account Pool Console</title>
+<style>
+  :root{
+    --bg:#0a0e17; --bg2:#0e1421; --panel:#121a2b; --panel2:#0f1626;
+    --line:#20293d; --line2:#2b3550; --text:#e7eaf3; --muted:#8590a8;
+    --accent:#4f8cff; --accent2:#2563eb; --ok:#34d399; --bad:#f87171;
+    --warn:#fbbf24; --purple:#a78bfa; --radius:12px;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;background:radial-gradient(1200px 600px at 15% -10%,#152140 0%,var(--bg) 55%) no-repeat,var(--bg);
+    color:var(--text);font:14px/1.6 "Segoe UI",system-ui,-apple-system,sans-serif;
+    min-height:100vh;
+  }
+  a{color:var(--accent);text-decoration:none}
+  code,kbd,pre{font-family:ui-monospace,SFMono-Regular,Consolas,"Cascadia Mono",monospace}
+
+  /* ---------- Header ---------- */
+  header{
+    position:sticky;top:0;z-index:20;backdrop-filter:blur(14px);
+    background:rgba(10,14,23,.82);border-bottom:1px solid var(--line);
+  }
+  .hwrap{max-width:1280px;margin:0 auto;padding:14px 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:650;font-size:17px;letter-spacing:.2px}
+  .logo .dot{width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--purple));box-shadow:0 0 14px rgba(79,140,255,.8)}
+  .logo small{color:var(--muted);font-weight:400;font-size:12px;margin-left:2px}
+  .pills{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto;align-items:center}
+  .pill{
+    display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:5px 11px;border-radius:999px;
+    background:var(--panel);border:1px solid var(--line);color:var(--muted);white-space:nowrap
+  }
+  .pill b{color:var(--text);font-weight:600}
+  .pill .led{width:7px;height:7px;border-radius:50%;background:var(--muted)}
+  .pill.on .led{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+  .pill.off .led{background:var(--bad);box-shadow:0 0 8px var(--bad)}
+
+  .keybox{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:4px 6px 4px 11px}
+  .keybox input{background:transparent;border:0;color:var(--text);outline:none;width:210px;font-size:12.5px;font-family:ui-monospace,monospace}
+  .keybox button{padding:5px 10px;font-size:12px}
+
+  /* ---------- Layout ---------- */
+  main{max-width:1280px;margin:0 auto;padding:22px}
+  nav.tabs{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:0}
+  nav.tabs button{
+    background:transparent;border:0;border-bottom:2px solid transparent;color:var(--muted);
+    padding:10px 16px;font-size:14px;cursor:pointer;border-radius:8px 8px 0 0;transition:.15s
+  }
+  nav.tabs button:hover{color:var(--text);background:rgba(255,255,255,.03)}
+  nav.tabs button.active{color:var(--text);border-bottom-color:var(--accent);font-weight:600}
+  .tab{display:none}.tab.active{display:block;animation:fade .18s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+  /* ---------- Cards ---------- */
+  .card{background:linear-gradient(180deg,var(--panel) 0%,var(--panel2) 100%);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:16px}
+  .card>h3{margin:0 0 4px;font-size:14.5px;display:flex;align-items:center;gap:8px}
+  .card>h3 .tag{font-size:11px;font-weight:500;color:var(--muted);background:var(--bg2);border:1px solid var(--line);border-radius:6px;padding:1px 7px}
+  .hint{color:var(--muted);font-size:12.5px;margin:2px 0 12px}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+  .row>div{flex:1;min-width:170px}
+  .copyline{display:flex;gap:7px;align-items:center}
+  .copyline input{flex:1;font-family:ui-monospace,monospace;font-size:12.5px}
+
+  /* ---------- Step-by-step ---------- */
+  .stepbox{display:flex;gap:13px;align-items:flex-start;padding:15px 0;border-bottom:1px solid rgba(32,41,61,.6)}
+  .stepbox:last-child{border-bottom:0;padding-bottom:0}
+  .stepbox:first-of-type{padding-top:4px}
+  .stepno{flex:0 0 26px;width:26px;height:26px;border-radius:50%;background:var(--accent2);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:650;margin-top:1px}
+  .btnlike{display:inline-flex;align-items:center;gap:6px;background:var(--accent2);color:#fff;
+    border-radius:9px;padding:9px 16px;font-size:13px;text-decoration:none;transition:.15s}
+  .btnlike:hover{background:#3b82f6;color:#fff}
+  .btnlike.ghostlike{background:transparent;border:1px solid var(--line);color:var(--text)}
+  .btnlike.ghostlike:hover{background:rgba(255,255,255,.05);border-color:#37415a;color:var(--text)}
+  .olsteps{margin:8px 0 0;padding-left:0;list-style:none;counter-reset:ols}
+  .olsteps>li{position:relative;padding:5px 0 5px 30px;font-size:12.5px;color:var(--muted);line-height:1.8;counter-increment:ols}
+  .olsteps>li::before{content:counter(ols);position:absolute;left:0;top:6px;width:19px;height:19px;border-radius:50%;
+    background:var(--bg2);border:1px solid var(--line);color:var(--text);font-size:11px;font-weight:650;
+    display:flex;align-items:center;justify-content:center}
+  .olsteps>li>b{color:var(--text)}
+  .olsteps>li>code{background:var(--bg2);border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:12px;color:var(--accent)}
+  kbd{display:inline-block;background:var(--bg2);border:1px solid var(--line);border-bottom-width:2px;
+    border-radius:5px;padding:1px 7px;font-size:11.5px;color:var(--text);line-height:1.6;white-space:nowrap}
+
+  /* ---------- Stats ---------- */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px}
+  .stat{background:linear-gradient(180deg,var(--panel) 0%,var(--panel2) 100%);border:1px solid var(--line);border-radius:var(--radius);padding:15px 17px}
+  .stat .k{color:var(--muted);font-size:12px;margin-bottom:4px}
+  .stat .v{font-size:25px;font-weight:650;letter-spacing:.4px}
+  .stat.g .v{color:var(--ok)}.stat.r .v{color:var(--bad)}.stat.y .v{color:var(--warn)}.stat.b .v{color:var(--accent)}
+
+  /* ---------- Forms ---------- */
+  label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:5px}
+  input[type=text],input[type=number],textarea,select{
+    width:100%;background:var(--bg2);color:var(--text);border:1px solid var(--line);border-radius:9px;
+    padding:9px 12px;font-size:13px;outline:none;transition:.15s;font-family:inherit
+  }
+  textarea{font-family:ui-monospace,monospace;resize:vertical;line-height:1.55}
+  input:focus,textarea:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,140,255,.13)}
+  button{
+    background:var(--accent2);color:#fff;border:0;border-radius:9px;padding:9px 16px;
+    font-size:13px;cursor:pointer;transition:.15s;font-family:inherit;white-space:nowrap
+  }
+  button:hover{background:#3b82f6}
+  button:active{transform:translateY(1px)}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  button.ghost{background:transparent;border:1px solid var(--line);color:var(--text)}
+  button.ghost:hover{background:rgba(255,255,255,.05);border-color:#37415a}
+  button.danger{background:transparent;border:1px solid rgba(248,113,113,.4);color:var(--bad)}
+  button.danger:hover{background:rgba(248,113,113,.12)}
+  button.mini{padding:4px 10px;font-size:12px;border-radius:7px}
+  button.primary-lg{padding:11px 24px;font-size:13.5px}
+
+  /* ---------- Tables ---------- */
+  .tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{background:var(--bg2);color:var(--muted);font-weight:500;font-size:12px;text-align:left;padding:10px 13px;white-space:nowrap;border-bottom:1px solid var(--line)}
+  td{padding:11px 13px;border-bottom:1px solid rgba(32,41,61,.6);vertical-align:middle}
+  tbody tr:last-child td{border-bottom:0}
+  tbody tr:hover{background:rgba(79,140,255,.045)}
+  .mono{font-family:ui-monospace,monospace;font-size:12px;color:var(--muted)}
+  .ellip{max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle}
+  .badge{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;padding:3px 9px;border-radius:999px;border:1px solid;white-space:nowrap}
+  .badge.ok{color:var(--ok);border-color:rgba(52,211,153,.35);background:rgba(52,211,153,.1)}
+  .badge.bad{color:var(--bad);border-color:rgba(248,113,113,.35);background:rgba(248,113,113,.1)}
+  .badge.warn{color:var(--warn);border-color:rgba(251,191,36,.35);background:rgba(251,191,36,.1)}
+  .badge.mute{color:var(--muted);border-color:var(--line);background:var(--bg2)}
+  .badge.info{color:var(--accent);border-color:rgba(79,140,255,.35);background:rgba(79,140,255,.1)}
+  .acts{display:flex;gap:6px;flex-wrap:wrap}
+  .empty{text-align:center;color:var(--muted);padding:34px 10px;font-size:13px}
+
+  /* ---------- Media Gallery ---------- */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
+  .tile{position:relative;background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;transition:.18s}
+  .tile:hover{border-color:#37415a;transform:translateY(-2px)}
+  .tile.selected{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+  .tile .check-tag{position:absolute;top:8px;left:8px;z-index:3;display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;background:rgba(15,23,42,.82);backdrop-filter:blur(4px);border:1px solid var(--line);cursor:pointer;transition:.15s}
+  .tile .check-tag:hover{border-color:var(--accent);background:rgba(15,23,42,.95)}
+  .tile .check-tag input{width:14px;height:14px;margin:0;cursor:pointer;accent-color:var(--accent)}
+  .tile .thumb{height:150px;background:#060911;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+  .tile .thumb img,.tile .thumb video{width:100%;height:100%;object-fit:contain;display:block}
+  .tile .meta{padding:9px 11px;font-size:11.5px;color:var(--muted)}
+  .tile .meta .nm{font-family:ui-monospace,monospace;color:var(--text);font-size:11px;word-break:break-all}
+  .tile .meta .ac{display:flex;gap:6px;margin-top:7px;align-items:center}
+
+  /* ---------- Result Preview ---------- */
+  .result{margin-top:14px;padding:14px;background:var(--bg2);border:1px dashed var(--line);border-radius:var(--radius);display:none}
+  .result.show{display:block}
+  .result img,.result video{max-width:100%;max-height:420px;border-radius:9px;display:block;margin-top:10px;background:#060911}
+  pre.out{background:#060911;border:1px solid var(--line);border-radius:9px;padding:12px;overflow:auto;max-height:280px;font-size:12px;color:#9fe8c0;margin:10px 0 0;white-space:pre-wrap;word-break:break-all}
+
+  /* ---------- Toasts ---------- */
+  #toasts{position:fixed;right:20px;bottom:20px;z-index:99;display:flex;flex-direction:column;gap:9px;align-items:flex-end}
+  .toast{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:10px;padding:11px 15px;font-size:13px;max-width:380px;box-shadow:0 12px 34px rgba(0,0,0,.55);animation:slide .2s ease}
+  .toast.ok{border-left-color:var(--ok)}.toast.bad{border-left-color:var(--bad)}.toast.warn{border-left-color:var(--warn)}
+  @keyframes slide{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
+
+  /* ---------- Docs ---------- */
+  .doc h4{margin:20px 0 8px;font-size:13.5px;color:var(--text)}
+  .doc h4:first-child{margin-top:0}
+  pre.code{background:#060911;border:1px solid var(--line);border-radius:9px;padding:14px;overflow:auto;font-size:12.5px;line-height:1.65;color:#cfe3ff;position:relative}
+  pre.code .cp{position:absolute;top:8px;right:8px;font-size:11px;padding:3px 9px;background:var(--panel);border:1px solid var(--line);color:var(--muted);border-radius:6px;cursor:pointer}
+  pre.code .cp:hover{color:var(--text)}
+  .k{color:var(--purple)}.s{color:#7ee2a8}.c{color:#5b6478}
+  .spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:6px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .live{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted)}
+  .live .led{width:6px;height:6px;border-radius:50%;background:var(--ok);animation:bl 1.6s infinite}
+  @keyframes bl{0%,100%{opacity:1}50%{opacity:.25}}
+
+  /* ---------- Auth Banner ---------- */
+  .banner{display:none;align-items:flex-start;gap:13px;background:linear-gradient(90deg,rgba(251,191,36,.14),rgba(251,191,36,.03));
+    border:1px solid rgba(251,191,36,.42);border-radius:var(--radius);padding:15px 18px;margin-bottom:16px;font-size:13.5px;line-height:1.75}
+  .banner.show{display:flex}
+  .banner .ic{font-size:20px;line-height:1.2}
+  .banner b{color:var(--warn)}
+  .banner code{background:rgba(0,0,0,.35);padding:2px 7px;border-radius:5px;color:#7dd3fc;font-size:12.5px}
+  .keybox.miss{border-color:rgba(251,191,36,.75);box-shadow:0 0 0 3px rgba(251,191,36,.12);animation:pulse 1.8s infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(251,191,36,.12)}50%{box-shadow:0 0 0 5px rgba(251,191,36,.05)}}
+  .keybox .lbl{font-size:11.5px;color:var(--muted);padding-left:4px;white-space:nowrap}
+  .keybox.ok .lbl{color:var(--ok)}
+  .keybox.miss .lbl{color:var(--warn)}
+  .updpill-alert{border-color:rgba(251,191,36,.8)!important;background:rgba(251,191,36,.15)!important;color:var(--warn)!important;animation:pulse 1.6s infinite}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hwrap">
+    <div class="logo">
+      <span class="dot"></span>muse2api <small>Muse Web Reverse Proxy · Go Gateway</small>
+      <a href="https://github.com/ninja-c9/muse2api" target="_blank" class="pill" style="margin-left:10px;text-decoration:none;color:var(--text);border-color:var(--line2);cursor:pointer" title="Open GitHub Repository (https://github.com/ninja-c9/muse2api)">
+        <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" style="vertical-align:-2px"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+        <b>GitHub</b>
+      </a>
+      <button class="ghost mini" onclick="toggleRepoPanel()" id="btnRepoTop" style="display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:4px 11px;font-size:12px" title="Check repository version status">
+        📦 <span id="repoTopTxt">Version</span>
+      </button>
+    </div>
+    <div class="pills">
+      <span class="pill" id="pSvc"><span class="led"></span>Service <b>—</b></span>
+      <span class="pill" id="pAcc"><span class="led"></span>Accounts <b>—</b></span>
+      <span class="pill" id="pBr"><span class="led"></span>Browser <b>—</b></span>
+      <span class="live" id="live"><span class="led"></span>Auto Refresh</span>
+      <span class="keybox" id="keyBox">
+        <span class="lbl" id="keyLbl">API Key</span>
+        <input id="key" type="password" placeholder="Paste m2a_... key" autocomplete="off">
+        <button class="ghost mini" onclick="saveKey()">Save</button>
+      </span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- Update notification banner -->
+  <div class="banner" id="updateBanner" style="border-color:rgba(79,140,255,.65);background:linear-gradient(90deg,rgba(79,140,255,.16),rgba(167,139,250,.05));align-items:center;justify-content:space-between;flex-wrap:wrap">
+    <div style="display:flex;gap:12px;align-items:flex-start;flex:1;min-width:260px">
+      <span class="ic">🔔</span>
+      <div>
+        <b style="color:#60a5fa">A new muse2api release is available on GitHub!</b>
+        <span id="updBannerVer" class="badge info" style="margin-left:8px">New Version</span><br>
+        <span id="updBannerMsg" style="color:var(--muted);font-size:13px">New features or performance improvements are available in the repository.</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button class="ghost mini" onclick="toggleRepoPanel()">View Release Notes</button>
+      <button class="ghost mini" onclick="dismissUpdateBanner()">Dismiss</button>
+    </div>
+  </div>
+
+  <!-- Repository version status panel -->
+  <div class="card" id="repoPanel" style="display:none;border-color:rgba(79,140,255,.45);margin-bottom:16px">
+    <h3>
+      <svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+      Repository Version &amp; Release Info
+      <a href="https://github.com/ninja-c9/muse2api" target="_blank" class="tag" style="color:var(--accent)">ninja-c9/muse2api ↗</a>
+      <span id="repoBadge" class="badge info" style="margin-left:auto">Checking…</span>
+    </h3>
+    <div class="hint" id="repoStatusDesc">Comparing local build version against GitHub repository…</div>
+    <div id="repoCommitsBox" style="margin-top:10px;background:var(--bg2);border:1px solid var(--line);border-radius:9px;padding:10px 14px;font-size:12.5px"></div>
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button class="ghost" onclick="loadRepoStatus(true)">🔍 Check for Updates</button>
+      <a href="https://github.com/ninja-c9/muse2api/commits/main" target="_blank" class="btnlike ghostlike" style="padding:7px 13px;font-size:12.5px">View Commit History on GitHub ↗</a>
+    </div>
+  </div>
+
+  <div class="banner" id="authBanner">
+    <span class="ic">🔑</span>
+    <div>
+      <b>Enter your API Key to access the dashboard</b><br>
+      <span style="color:var(--muted)">
+        The API Key protects your muse2api gateway and Muse account pool.
+        It is <b style="color:var(--text)">not</b> your Muse account password — it is a random token starting with <code>m2a_</code> generated on first startup.<br>
+        Paste it into the top-right input box and click "Save" to persist it in your browser.
+      </span>
+    </div>
+  </div>
+
+  <nav class="tabs">
+    <button class="active" data-t="pool">Account Pool</button>
+    <button data-t="cookie">Get Cookies</button>
+    <button data-t="tasks">Tasks</button>
+    <button data-t="media">Media Library</button>
+    <button data-t="play">Playground</button>
+    <button data-t="docs">API Docs</button>
+  </nav>
+
+  <!-- ==================== Account Pool ==================== -->
+  <section class="tab active" id="tab-pool">
+    <div class="warnbar" id="expWarn" style="display:none">
+      <span id="expWarnText"></span>
+      <button class="ghost mini" onclick="goTab('cookie')">Re-authenticate</button>
+    </div>
+    <div class="card" style="border-color:rgba(79,140,255,.4)">
+      <h3>Endpoint Credentials <span class="tag">Use these in downstream clients</span></h3>
+      <div class="hint">Configure your OpenAI/Anthropic client with the Base URL and API Key below.</div>
+      <div class="row">
+        <div style="flex:3">
+          <label>BASE URL</label>
+          <div class="copyline">
+            <input type="text" id="inBase" readonly>
+            <button class="ghost mini" onclick="copyEl('inBase')">Copy</button>
+          </div>
+        </div>
+        <div style="flex:3">
+          <label>API Key</label>
+          <div class="copyline">
+            <input type="text" id="inKey" readonly>
+            <button class="ghost mini" onclick="toggleKey()" id="keyEye">Show</button>
+            <button class="ghost mini" onclick="copyKey()">Copy</button>
+            <button class="danger mini" onclick="rotateKey()">Rotate</button>
+          </div>
+        </div>
+      </div>
+      <div class="hint" style="margin:11px 0 0">
+        Models: <code>muse-spark</code> (chat/code), <code>muse-image</code> (image generation), <code>muse-video</code> (video generation).
+        See the "API Docs" tab for full examples.
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat b"><div class="k">Total Accounts</div><div class="v" id="sTotal">0</div></div>
+      <div class="stat g"><div class="k">Healthy</div><div class="v" id="sOk">0</div></div>
+      <div class="stat r"><div class="k">Error</div><div class="v" id="sBad">0</div></div>
+      <div class="stat y"><div class="k">Disabled</div><div class="v" id="sDis">0</div></div>
+      <div class="stat"><div class="k">Media Files</div><div class="v" id="sMedia">0</div></div>
+    </div>
+
+    <div class="card">
+      <h3>Add Account <span class="tag">Supports Batch Import</span></h3>
+      <div class="hint">
+        Paste your <b>muse.ai</b> cookie string below. Essential cookies:
+        <code>hatch_sess</code>, <code>hatch_gw</code>, <code>hatch_vml</code>.
+        For batch import, enter one account per line in the format <code>label | cookie_string</code> (label is optional).
+      </div>
+      <div class="row">
+        <div style="max-width:230px">
+          <label>Account Label (single import)</label>
+          <input type="text" id="newLabel" placeholder="e.g. muse-main">
+        </div>
+        <div style="flex:3">
+          <label>Cookie String</label>
+          <textarea id="newCookie" rows="4" placeholder="hatch_sess=...; hatch_gw=...; hatch_vml=...&#10;Or batch format:&#10;acc-01 | hatch_sess=...; hatch_gw=...&#10;acc-02 | hatch_sess=...; hatch_gw=..."></textarea>
+        </div>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
+        <button class="primary-lg" onclick="addAccount(false)">Import Account</button>
+        <button class="ghost" onclick="document.getElementById('newCookie').value='';">Clear</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <h3 style="margin:0">Accounts <span class="tag" id="poolCount">0</span></h3>
+          <span class="badge ok" id="keepaliveBadge" style="font-size:11px">● Auto Keepalive Active (15m)</span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="secondary" id="btnKeepaliveAll" onclick="keepaliveAll()" style="font-size:12px;padding:6px 14px">⚡ Keepalive All Accounts</button>
+        </div>
+      </div>
+      <div class="hint">Background <b>silent keepalive</b> and <b>LRU multi-account rotation</b> are enabled. Clicking "Test" opens muse.ai in headless Chromium to verify the session.</div>
+      <div class="tblwrap"><table>
+        <thead><tr>
+          <th>Label</th><th>Account ID</th><th>Status</th><th>Expires</th><th>Quota</th><th>Enabled</th><th>Cookies</th>
+          <th>Last Used</th><th>Note</th><th style="min-width:250px">Actions</th>
+        </tr></thead>
+        <tbody id="poolBody"><tr><td colspan="10" class="empty">Loading…</td></tr></tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <!-- ==================== Get Cookies ==================== -->
+  <section class="tab" id="tab-cookie">
+    <div class="card" style="border-color:rgba(52,211,153,.45)">
+      <h3>Method 1: Browser Extension <span class="tag">Recommended · Zero CLI</span></h3>
+      <div class="hint">
+        Use the lightweight browser extension to sync your logged-in <b>muse.ai</b> session directly into muse2api.<br>
+        <b>Why an extension is recommended</b>: muse.ai's core cookies have the <code>httpOnly</code> flag, so page scripts (<code>document.cookie</code>) cannot read them, whereas the browser extension <code>cookies</code> API reads them directly.
+      </div>
+
+      <div class="stepbox">
+        <div class="stepno">1</div>
+        <div>
+          <b>Download and extract the extension</b>
+          <div class="hint" style="margin:4px 0 9px">
+            Extract the zip archive to a permanent folder on your computer.
+          </div>
+          <a class="btnlike" href="/admin/extension" download>⬇ Download muse2api-extension.zip</a>
+          <button class="ghost mini" onclick="loadExtFiles()">View included files</button>
+          <span class="hint" id="extFiles" style="margin-left:8px"></span>
+        </div>
+      </div>
+
+      <div class="stepbox">
+        <div class="stepno">2</div>
+        <div>
+          <b>Load unpacked extension in Chrome / Edge / Brave</b>
+          <ol class="olsteps">
+            <li>Open <code>chrome://extensions</code> in your browser address bar</li>
+            <li>Enable <b>Developer mode</b> in the top-right corner</li>
+            <li>Click <b>Load unpacked</b> in the top-left corner</li>
+            <li>Select the extracted <b>folder</b> from Step 1</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="stepbox">
+        <div class="stepno">3</div>
+        <div>
+          <b>Sign in to muse.ai and click the extension icon</b>
+          <div class="hint" style="margin:4px 0 9px">
+            Open <code>https://muse.ai/</code> and sign in until the chat interface loads. Click the muse2api extension icon in your toolbar, paste the two values below, and click "Read &amp; Import".
+          </div>
+          <div class="row">
+            <div style="flex:3">
+              <label>BASE URL (for extension)</label>
+              <div class="copyline">
+                <input type="text" id="exBase" readonly>
+                <button class="ghost mini" onclick="copyEl('exBase')">Copy</button>
+              </div>
+            </div>
+            <div style="flex:3">
+              <label>API Key (for extension)</label>
+              <div class="copyline">
+                <input type="text" id="exKey" readonly>
+                <button class="ghost mini" onclick="copyExKey()">Copy</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Method 2: Manual DevTools Copy <span class="tag">Zero Install</span></h3>
+      <div class="hint">
+        You can also copy the cookie string from your browser's <b>Network → Request Headers</b> panel (which includes <code>httpOnly</code> cookies).
+      </div>
+      <ol class="olsteps" style="margin-top:10px">
+        <li>Open and sign in to <code>https://muse.ai/</code> until you see the chat UI</li>
+        <li>Press <kbd>F12</kbd> to open DevTools and switch to the <b>Network</b> tab</li>
+        <li>Press <kbd>F5</kbd> to reload the page</li>
+        <li>Click any request to <b>muse.ai</b> in the list</li>
+        <li>Under <b>Headers → Request Headers</b>, find the <code>cookie:</code> header</li>
+        <li>Copy the entire value after <code>cookie:</code> (starting with <code>hatch_sess=...</code>)</li>
+        <li>Paste it into Method 3 below and click Import</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <h3>Method 3: Paste Import / Local Go Helper <span class="tag">Advanced</span></h3>
+      <div class="hint">Paste a cookie header string directly below to import an account.</div>
+      <div class="row" style="margin-top:10px">
+        <div style="max-width:230px">
+          <label>Account Label</label>
+          <input type="text" id="mLabel" placeholder="e.g. acc-01">
+        </div>
+        <div style="flex:3">
+          <label>Cookie String</label>
+          <textarea id="mCookie" rows="3" placeholder="hatch_sess=...; hatch_gw=...; hatch_vml=...; hatch_native_auth_device=..."></textarea>
+        </div>
+      </div>
+      <div style="margin-top:12px">
+        <button class="primary-lg" onclick="addAccount(true)">Import Account</button>
+      </div>
+
+      <div class="hint" style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line)">
+        Prefer the command line? Download our standalone Go helper script (uses <b>100% Go standard library</b>, zero external dependencies).
+      </div>
+      <div class="row" style="margin-top:10px">
+        <div style="flex:2">
+          <label>① Download Helper</label>
+          <div class="copyline">
+            <a class="btnlike ghostlike" href="/admin/cookie-helper?download=1" download>⬇ get_muse_cookie.go</a>
+            <a class="btnlike ghostlike" href="/admin/cookie-helper" target="_blank">View Source</a>
+          </div>
+        </div>
+        <div style="flex:4;min-width:0">
+          <label>② Run Command (pre-filled with your URL &amp; Key)</label>
+          <pre class="code" id="cmdBox"><span class="cp" onclick="copyCmd()">Copy</span><span id="cmdText">Generating command…</span></pre>
+        </div>
+      </div>
+      <div class="hint" style="margin-top:8px">
+        ③ Log in to muse.ai in the launched browser window → cookies are captured and uploaded automatically.
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Cookie Lifespan Reference <span class="tag">Measured</span></h3>
+      <div class="hint" style="margin:0 0 12px">
+        Measured lifespans for muse.ai cookies:
+      </div>
+      <div class="tblwrap"><table>
+        <thead><tr><th>Cookie</th><th>httpOnly</th><th>Lifespan</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">hatch_sess</td><td>Yes</td><td><b style="color:var(--ok)">~30 days</b></td><td>Primary session token</td></tr>
+          <tr><td class="mono">hatch_gw</td><td>Yes</td><td><b style="color:var(--ok)">~1 year</b></td><td>Gateway authentication token</td></tr>
+          <tr><td class="mono">hatch_vml</td><td>Yes</td><td><b style="color:var(--bad)">~2 days</b></td><td>Short-lived VM token; <b>renewed automatically by keepalive</b></td></tr>
+          <tr><td class="mono">hatch_native_auth_device</td><td>Yes</td><td><b style="color:var(--ok)">~30 days</b></td><td>Device identifier</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <!-- ==================== Tasks ==================== -->
+  <section class="tab" id="tab-tasks">
+    <div class="card">
+      <h3>Generation Tasks <span class="tag" id="taskCount">0</span></h3>
+      <div class="hint">Async image and video tasks transition from queued → processing → completed / failed.</div>
+      <div style="margin-bottom:12px;display:flex;gap:9px">
+        <button class="ghost mini" onclick="loadTasks()">Refresh</button>
+        <button class="danger mini" onclick="clearTasks()">Clear All</button>
+      </div>
+      <div class="tblwrap"><table>
+        <thead><tr>
+          <th>Task ID</th><th>Type</th><th>Prompt</th><th>Status</th>
+          <th>Elapsed</th><th>Created At</th><th>Result / Error</th><th></th>
+        </tr></thead>
+        <tbody id="taskBody"><tr><td colspan="8" class="empty">Loading…</td></tr></tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <!-- ==================== Media Library ==================== -->
+  <section class="tab" id="tab-media">
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+        <div>
+          <h3 style="margin:0 0 4px">Media Library <span class="tag" id="mediaCount">0</span></h3>
+          <div class="hint" style="margin:0">All generated images and videos stored on disk.</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <button class="ghost mini" onclick="loadMedia()">Refresh</button>
+          <button class="ghost mini" id="btnSelectAllMedia" onclick="toggleSelectAllMedia()">Select All</button>
+          <button class="danger mini" id="btnDelSelectedMedia" onclick="delSelectedMedia()" style="display:none">Delete Selected (<span id="selMediaCount">0</span>)</button>
+        </div>
+      </div>
+      <div class="grid" id="mediaGrid"><div class="empty">Loading…</div></div>
+    </div>
+  </section>
+
+  <!-- ==================== Playground ==================== -->
+  <section class="tab" id="tab-play">
+    <div class="card">
+      <h3>Image Generation Playground <span class="tag">POST /v1/images/generations</span></h3>
+      <div class="hint">Generates an image via muse.ai (typically takes 10–30 seconds).</div>
+      <div class="row">
+        <div style="flex:3"><label>Prompt</label>
+          <input type="text" id="imgPrompt" value="A Shiba Inu wearing an astronaut helmet, cyberpunk style, neon lights background"></div>
+        <div style="max-width:140px"><label>Aspect Ratio</label>
+          <select id="imgSize"><option>1:1</option><option>16:9</option><option>9:16</option><option>4:3</option><option>3:4</option></select></div>
+      </div>
+      <div style="margin-top:12px"><button class="primary-lg" id="imgBtn" onclick="runImage()">Generate Image</button></div>
+      <div class="result" id="imgRes"></div>
+    </div>
+
+    <div class="card">
+      <h3>Video Generation Playground <span class="tag">POST /v1/videos</span></h3>
+      <div class="hint">Asynchronous task (typically takes 60–120 seconds); progress is polled automatically.</div>
+      <div class="row">
+        <div style="flex:3"><label>Prompt</label>
+          <input type="text" id="vidPrompt" value="An orange kitten walking slowly across a sunlit meadow"></div>
+        <div style="max-width:110px"><label>Duration (s)</label>
+          <input type="number" id="vidDur" value="5" min="1" max="30"></div>
+        <div style="max-width:140px"><label>Aspect Ratio</label>
+          <select id="vidSize"><option>16:9</option><option>9:16</option><option>1:1</option></select></div>
+      </div>
+      <div style="margin-top:12px"><button class="primary-lg" id="vidBtn" onclick="runVideo()">Generate Video</button></div>
+      <div class="result" id="vidRes"></div>
+    </div>
+  </section>
+
+  <!-- ==================== API Docs ==================== -->
+  <section class="tab" id="tab-docs">
+    <div class="card doc">
+      <h3>Integration Guide</h3>
+      <div class="hint">
+        Compatible with OpenAI and Anthropic SDKs — just set <code>base_url</code> and <code>api_key</code>.
+        <br>BASE URL: <code id="dBase">—</code>
+      </div>
+
+      <h4>1. Available Models</h4>
+      <div class="tblwrap"><table>
+        <thead><tr><th>Model ID</th><th>Capability</th><th>Endpoint</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">muse-spark</td><td>Chat / Code completion (streaming &amp; non-streaming)</td><td class="mono">POST /v1/chat/completions<br>POST /v1/responses<br>POST /v1/messages</td></tr>
+          <tr><td class="mono">muse-image</td><td>Text-to-Image / Image Editing</td><td class="mono">POST /v1/images/generations<br>POST /v1/images/edits</td></tr>
+          <tr><td class="mono">muse-video</td><td>Text-to-Video / Image-to-Video</td><td class="mono">POST /v1/videos → GET /v1/videos/{id}</td></tr>
+        </tbody>
+      </table></div>
+      <div class="hint" style="margin-top:6px">
+        Common downstream model names (<code>gpt-4o</code>, <code>claude-sonnet-4</code>, <code>dall-e-3</code>, etc.) are automatically mapped to the corresponding Muse capability.
+      </div>
+
+      <h4>2. Chat Completions</h4>
+      <pre class="code"><span class="cp" onclick="cp(this)">Copy</span><span class="c"># Non-streaming</span>
+curl -X POST <span class="s">"BASE/v1/chat/completions"</span> \
+  -H <span class="s">"Authorization: Bearer $MUSE2API_KEY"</span> \
+  -H <span class="s">"Content-Type: application/json"</span> \
+  -d <span class="s">'{"model":"muse-spark","messages":[{"role":"user","content":"Write a quicksort in Go"}]}'</span>
+
+<span class="c"># Streaming: add "stream":true to receive standard SSE chunks</span></pre>
+
+      <h4>3. Image Generation (curl)</h4>
+      <pre class="code"><span class="cp" onclick="cp(this)">Copy</span>curl -X POST <span class="s">"BASE/v1/images/generations"</span> \
+  -H <span class="s">"Authorization: Bearer $MUSE2API_KEY"</span> \
+  -H <span class="s">"Content-Type: application/json"</span> \
+  -d <span class="s">'{"prompt":"A Shiba Inu wearing an astronaut helmet","size":"1:1","response_format":"url"}'</span></pre>
+
+      <h4>4. Video Generation (curl, async)</h4>
+      <pre class="code"><span class="cp" onclick="cp(this)">Copy</span><span class="c"># ① Create task</span>
+curl -X POST <span class="s">"BASE/v1/videos"</span> \
+  -H <span class="s">"Authorization: Bearer $MUSE2API_KEY"</span> \
+  -H <span class="s">"Content-Type: application/json"</span> \
+  -d <span class="s">'{"prompt":"A kitten walking across a meadow","duration":5,"size":"16:9"}'</span>
+
+<span class="c"># ② Poll status</span>
+curl <span class="s">"BASE/v1/videos/task_xxx"</span> -H <span class="s">"Authorization: Bearer $MUSE2API_KEY"</span></pre>
+
+      <h4>5. Admin Endpoints</h4>
+      <div class="tblwrap"><table>
+        <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">GET</td><td class="mono">/admin/status</td><td>Service overview, account pool, and recent tasks</td></tr>
+          <tr><td class="mono">GET</td><td class="mono">/admin/accounts</td><td>List accounts</td></tr>
+          <tr><td class="mono">POST</td><td class="mono">/admin/accounts</td><td>Add account(s) (single or batch)</td></tr>
+          <tr><td class="mono">PATCH</td><td class="mono">/admin/accounts/{id}</td><td>Rename or enable/disable account</td></tr>
+          <tr><td class="mono">DELETE</td><td class="mono">/admin/accounts/{id}</td><td>Delete account</td></tr>
+          <tr><td class="mono">POST</td><td class="mono">/admin/accounts/{id}/test</td><td>Verify session live in browser and refresh quota</td></tr>
+          <tr><td class="mono">POST</td><td class="mono">/admin/accounts/{id}/quota</td><td>Query remaining account quota</td></tr>
+          <tr><td class="mono">POST</td><td class="mono">/admin/accounts/{id}/cookies</td><td>Update account cookies</td></tr>
+          <tr><td class="mono">GET</td><td class="mono">/admin/tasks</td><td>List generation tasks</td></tr>
+          <tr><td class="mono">GET</td><td class="mono">/admin/media</td><td>List generated media files</td></tr>
+          <tr><td class="mono">POST</td><td class="mono">/admin/media/delete</td><td>Batch delete media files</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </section>
+</main>
+
+<footer style="max-width:1280px;margin:18px auto 32px;padding:12px 24px;text-align:center;color:var(--muted);font-size:12px;border-top:1px solid var(--line)">
+  <span>Repository: <a href="https://github.com/ninja-c9/muse2api" target="_blank" style="color:var(--accent);text-decoration:none">GitHub · ninja-c9/muse2api</a></span>
+</footer>
+
+<div id="toasts"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const KEY_STORE = 'muse2api_key';
+let KEY = localStorage.getItem(KEY_STORE) || new URLSearchParams(location.search).get('key') || '';
+$('key').value = KEY;
+$('dBase').textContent = location.origin + '/v1';
+
+let authOK = null;
+function setAuth(ok){
+  if (authOK === ok) return;
+  authOK = ok;
+  $('authBanner').classList.toggle('show', !ok);
+  $('keyBox').classList.toggle('ok', ok);
+  $('keyBox').classList.toggle('miss', !ok);
+  $('keyLbl').textContent = ok ? '✓ Authenticated' : 'API Key Required';
+}
+
+function saveKey(){
+  KEY = $('key').value.trim();
+  localStorage.setItem(KEY_STORE, KEY);
+  if (!KEY){ setAuth(false); toast('API Key cleared', 'warn'); return; }
+  toast('API Key saved to browser storage', 'ok');
+  authOK = null;
+  refreshAll();
+}
+
+function toast(msg, kind){
+  const d = document.createElement('div');
+  d.className = 'toast ' + (kind || '');
+  d.textContent = msg;
+  $('toasts').appendChild(d);
+  setTimeout(() => { d.style.opacity = '0'; d.style.transition = '.3s'; }, 3600);
+  setTimeout(() => d.remove(), 4000);
+}
+
+async function api(path, opts){
+  opts = opts || {};
+  opts.headers = Object.assign({'Content-Type':'application/json'}, opts.headers || {});
+  if (KEY) opts.headers['Authorization'] = 'Bearer ' + KEY;
+  const r = await fetch(path, opts);
+  const txt = await r.text();
+  let data; try { data = JSON.parse(txt); } catch(e){ data = null; }
+  if (r.status === 401){
+    setAuth(false);
+    throw new Error('Missing or invalid API Key');
+  }
+  setAuth(true);
+  if (!r.ok) {
+    let msg = '';
+    if (data) {
+      if (typeof data.detail === 'string') msg = data.detail;
+      else if (typeof data.message === 'string') msg = data.message;
+      else if (data.error) msg = typeof data.error === 'string' ? data.error : (data.error.message || JSON.stringify(data.error));
+    }
+    if (!msg && txt) {
+      if (txt.includes('502 Bad Gateway') || txt.includes('nginx')) {
+        msg = 'Reverse proxy timeout (Nginx 502 Bad Gateway; increase proxy_read_timeout to 600s)';
+      } else {
+        msg = txt.slice(0, 150);
+      }
+    }
+    throw new Error(msg || ('HTTP ' + r.status));
+  }
+  return data;
+}
+
+function esc(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function fmtBytes(n){
+  if (!n && n !== 0) return '—';
+  if (n < 1024) return n + ' B';
+  if (n < 1048576) return (n/1024).toFixed(1) + ' KB';
+  return (n/1048576).toFixed(2) + ' MB';
+}
+function fmtTime(ts){
+  if (!ts) return '—';
+  const d = new Date(ts * 1000);
+  const p = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+function ago(ts){
+  if (!ts) return 'Never';
+  const s = Math.max(0, Math.floor(Date.now()/1000) - ts);
+  if (s < 60) return s + 's ago';
+  if (s < 3600) return Math.floor(s/60) + 'm ago';
+  if (s < 86400) return Math.floor(s/3600) + 'h ago';
+  return Math.floor(s/86400) + 'd ago';
+}
+function cp(el){
+  const t = el.parentElement.innerText.replace(/^Copy\n?/, '');
+  navigator.clipboard.writeText(t).then(() => toast('Copied', 'ok'));
+}
+
+/* ================= Tabs ================= */
+function goTab(name){
+  const b = document.querySelector(`nav.tabs button[data-t="${name}"]`);
+  if (b) b.click();
+}
+document.querySelectorAll('nav.tabs button').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('nav.tabs button').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    $('tab-' + b.dataset.t).classList.add('active');
+    if (b.dataset.t === 'tasks') loadTasks();
+    if (b.dataset.t === 'media') loadMedia();
+    if (b.dataset.t === 'cookie') $('cmdText').textContent = buildCmd($('inBase').value);
+  };
+});
+
+/* ================= API Key ================= */
+let realKey = '';
+let keyShown = false;
+
+async function loadApikey(){
+  try{
+    const d = await api('/admin/apikey');
+    realKey = d.api_key || '';
+    $('inBase').value = d.base_url || (location.origin + '/v1');
+    renderKey();
+    fillExtFields(d.base_url);
+    $('cmdText').textContent = buildCmd(d.base_url);
+  }catch(e){
+    $('inBase').value = location.origin + '/v1';
+    fillExtFields(location.origin);
+    $('cmdText').textContent = '(Enter your API Key in the top-right corner to generate the command)';
+  }
+}
+
+function maskKey(k){
+  if (!k) return '';
+  return k.length <= 14 ? k : k.slice(0, 8) + '••••••••••••••' + k.slice(-4);
+}
+function renderKey(){
+  $('inKey').value = keyShown ? realKey : maskKey(realKey);
+  $('keyEye').textContent = keyShown ? 'Hide' : 'Show';
+}
+function toggleKey(){ keyShown = !keyShown; renderKey(); }
+
+function buildCmd(baseUrl){
+  const root = (baseUrl || location.origin).replace(/\/v1\/?$/, '').replace(/\/+$/, '');
+  return `go run get_muse_cookie.go --base ${root} --key ${realKey || 'YOUR_API_KEY'} --label muse-01`;
+}
+
+async function copyText(v){
+  if (!v) return toast('Nothing to copy', 'warn');
+  try{
+    await navigator.clipboard.writeText(v);
+    toast('Copied to clipboard', 'ok');
+  }catch(e){
+    const ta = document.createElement('textarea');
+    ta.value = v; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); toast('Copied to clipboard', 'ok'); }
+    catch(_){ toast('Copy failed; please copy manually', 'warn'); }
+    ta.remove();
+  }
+}
+async function copyEl(id){ await copyText($(id).value); }
+async function copyKey(){ await copyText(realKey); }
+async function copyCmd(){ await copyText($('cmdText').textContent); }
+async function copyExKey(){ await copyText($('exKey').value); }
+
+function fillExtFields(baseUrl){
+  const root = (baseUrl || location.origin)
+    .replace(/\/v1\/?$/i, '').replace(/\/+$/, '');
+  if ($('exBase')) $('exBase').value = root;
+  if ($('exKey')) $('exKey').value = realKey || '';
+}
+async function loadExtFiles(){
+  const el = $('extFiles');
+  if (!el) return;
+  el.textContent = 'Loading…';
+  try{
+    const d = await api('/admin/extension/files');
+    const files = d.files || [];
+    el.innerHTML = files.length
+      ? `Includes ${files.length} files: ` + files.map(f => `<code>${esc(f)}</code>`).join(', ')
+      : '(Extension directory is empty)';
+  }catch(e){
+    el.textContent = 'Failed to load: ' + e.message;
+  }
+}
+
+async function rotateKey(){
+  if (!confirm('Rotate API Key?\n\nThe old key will be invalidated immediately. Update all downstream clients.')) return;
+  try{
+    const d = await api('/admin/apikey/rotate', {method:'POST'});
+    realKey = d.api_key;
+    KEY = d.api_key;
+    localStorage.setItem(KEY_STORE, KEY);
+    $('key').value = KEY;
+    keyShown = true; renderKey();
+    $('cmdText').textContent = buildCmd($('inBase').value);
+    toast('New API Key generated and applied', 'ok');
+  }catch(e){ toast('Failed to rotate key: ' + e.message, 'bad'); }
+}
+
+/* ================= Quota Display ================= */
+function quotaBadge(a){
+  const q = a.quota;
+  if (!q || !q.found){
+    return '<span class="badge mute" title="Click Quota in Actions to query live usage">Unchecked</span>';
+  }
+  const pct = (q.weekly_used_pct != null) ? q.weekly_used_pct : null;
+  const cls = pct == null ? 'info' : pct < 50 ? 'ok' : pct < 80 ? 'warn' : 'bad';
+  const plan = (q.plan || '').replace(/\s*plan\s*$/i, '') || '—';
+  let title = `Plan: ${q.plan || '?'}`;
+  if (q.weekly_reset) title += `\nWeekly Reset: ${q.weekly_reset}`;
+  if (pct != null) title += `\nWeekly Used: ${pct}%`;
+  if (q.extra_left) title += `\nExtra Credits Left: ${q.extra_left} (used ${q.extra_used_pct ?? '?'}%)`;
+  if (q.checked_at) title += `\nChecked At: ${fmtTime(q.checked_at)}`;
+  const main = pct != null ? `${plan} · ${pct}% used` : plan;
+  const age = q.checked_at ? `<div class="mono" style="font-size:10px;color:var(--muted);margin-top:2px">Checked ${ago(q.checked_at)}</div>` : '';
+  const sub = (q.extra_left ? `<div class="mono" style="font-size:11px;color:var(--muted);margin-top:2px">+${esc(q.extra_left)}</div>` : '') + age;
+  return `<span class="badge ${cls}" title="${esc(title)}">${esc(main)}</span>${sub}`;
+}
+
+async function queryQuota(aid, btn){
+  if (btn){ btn.disabled = true; btn.textContent = 'Querying…'; }
+  try{
+    const q = await api(`/admin/accounts/${aid}/quota`, {method:'POST'});
+    if (q.found){
+      const extra = q.extra_left ? `, extra left: ${q.extra_left}` : '';
+      toast(`Quota: ${q.plan || '?'}, weekly used ${q.weekly_used_pct ?? '?'}%${extra}`, 'ok');
+    }else{
+      toast('No quota data found in settings panel', 'warn');
+    }
+    loadPool();
+  }catch(e){
+    toast('Quota query failed: ' + e.message, 'bad');
+    if (btn){ btn.disabled = false; btn.textContent = 'Quota'; }
+  }
+}
+
+/* ================= Expiry Display ================= */
+function expiryBadge(a){
+  const ts = a && a.expires_at;
+  if (!ts) return '<span class="badge mute" title="Expiry not recorded">Unknown</span>';
+  const est = a.expires_estimated
+    ? ' (estimated ~2 days from hatch_vml)'
+    : ' (exact hatch_vml expiry)';
+  const left = ts - Math.floor(Date.now() / 1000);
+  if (left <= 0) return `<span class="badge bad" title="Expired at ${fmtTime(ts)}${est}">Expired</span>`;
+  const days = left / 86400;
+  const txt = days >= 1
+    ? `${days >= 10 ? Math.round(days) : days.toFixed(1)}d left`
+    : `${Math.max(1, Math.floor(left / 3600))}h left`;
+  const cls = days < 1 ? 'bad' : days < 3 ? 'warn' : 'ok';
+  return `<span class="badge ${cls}" title="Expires: ${fmtTime(ts)}${est}">${txt}</span>`;
+}
+
+/* ================= Account Pool ================= */
+let accounts = [];
+
+async function loadPool(){
+  try{
+    const d = await api('/admin/accounts');
+    accounts = d.accounts || [];
+    const st = d.stats || {};
+    $('sTotal').textContent = st.total ?? accounts.length;
+    $('sOk').textContent    = st.healthy ?? 0;
+    $('sBad').textContent   = st.error ?? 0;
+    $('sDis').textContent   = st.disabled ?? 0;
+    $('poolCount').textContent = accounts.length;
+    $('pAcc').className = 'pill ' + (accounts.length ? 'on' : 'off');
+    $('pAcc').innerHTML = `<span class="led"></span>Accounts <b>${accounts.length}</b>`;
+
+    const now = Math.floor(Date.now() / 1000);
+    const soon = accounts.filter(a => a.enabled && a.expires_at &&
+                                      a.expires_at - now < 12 * 3600);
+    const bar = $('expWarn');
+    if (soon.length){
+      const dead = soon.filter(a => a.expires_at <= now).length;
+      const names = soon.slice(0, 4).map(a => esc(a.label)).join(', ') +
+                    (soon.length > 4 ? ` and ${soon.length} total` : '');
+      $('expWarnText').innerHTML = dead
+        ? `⚠️ <b>${dead} account(s) expired</b> (${names}). Please re-import cookies.`
+        : `⏳ <b>${names}</b> will expire in less than 12 hours.`;
+      bar.style.display = '';
+    }else{
+      bar.style.display = 'none';
+    }
+
+    if (!accounts.length){
+      $('poolBody').innerHTML = '<tr><td colspan="10" class="empty">No accounts yet. Go to the "Get Cookies" tab to import one.</td></tr>';
+      return;
+    }
+    $('poolBody').innerHTML = accounts.map(a => {
+      const ok = a.ok;
+      const badge = !a.enabled ? '<span class="badge mute">Disabled</span>'
+                  : ok === true  ? '<span class="badge ok">● Healthy</span>'
+                  : ok === false ? '<span class="badge bad">● Error</span>'
+                  : '<span class="badge warn">○ Unchecked</span>';
+      const miss = a.essential_ok ? '' : ' <span class="badge bad" title="Missing essential cookies">Missing Core</span>';
+      return `<tr>
+        <td><b>${esc(a.label)}</b></td>
+        <td class="mono">${esc(a.id)}</td>
+        <td>${badge}${miss}</td>
+        <td>${expiryBadge(a)}</td>
+        <td>${quotaBadge(a)}</td>
+        <td>${a.enabled ? '<span class="badge ok">On</span>' : '<span class="badge mute">Off</span>'}</td>
+        <td class="mono">${a.cookie_count}</td>
+        <td class="mono" title="${a.last_used ? fmtTime(a.last_used) : ''}">${ago(a.last_used)}</td>
+        <td class="mono ellip" title="${esc(a.note||'')}">${esc(a.note || '—')}</td>
+        <td><div class="acts">
+          <button class="ghost mini" onclick="testAcc('${a.id}')">Test</button>
+          <button class="ghost mini" onclick="keepaliveOne('${a.id}')" title="Silently renew session tokens">Keepalive</button>
+          <button class="ghost mini" onclick="queryQuota('${a.id}', this)">Quota</button>
+          <button class="ghost mini" onclick="toggleAcc('${a.id}', ${!a.enabled})">${a.enabled ? 'Disable' : 'Enable'}</button>
+          <button class="ghost mini" onclick="renameAcc('${a.id}','${esc(a.label)}')">Rename</button>
+          <button class="ghost mini" onclick="updateCookies('${a.id}')">Update Cookies</button>
+          <button class="danger mini" onclick="delAcc('${a.id}','${esc(a.label)}')">Delete</button>
+        </div></td>
+      </tr>`;
+    }).join('');
+  }catch(e){
+    $('poolBody').innerHTML = authOK === false
+      ? '<tr><td colspan="10" class="empty">🔑 Please enter your API Key in the top-right corner and click Save</td></tr>'
+      : `<tr><td colspan="10" class="empty">Failed to load: ${esc(e.message)}</td></tr>`;
+  }
+}
+
+async function addAccount(fromManual){
+  const labelEl = $(fromManual ? 'mLabel' : 'newLabel');
+  const ckEl    = $(fromManual ? 'mCookie' : 'newCookie');
+  const label = labelEl.value.trim();
+  const raw = ckEl.value.trim();
+  if (!raw) return toast('Please paste cookies first', 'warn');
+  const lines = raw.split('\n').map(s => s.trim()).filter(Boolean);
+  const body = (lines.length > 1) ? {batch: raw} : {label: label, cookie_header: raw};
+  try{
+    const r = await api('/admin/accounts', {method:'POST', body: JSON.stringify(body)});
+    if (r.warning) toast(r.warning, 'warn');
+    else toast(`Imported ${r.count} account(s)`, 'ok');
+    ckEl.value = ''; labelEl.value = '';
+    loadPool();
+  }catch(e){ toast('Import failed: ' + e.message, 'bad'); }
+}
+
+async function testAcc(id){
+  toast('Verifying session on muse.ai…');
+  try{
+    const r = await api(`/admin/accounts/${id}/test`, {method:'POST'});
+    const quotaStatus = r.quota_error ? `; quota error: ${r.quota_error}` : r.quota ? `; quota: ${r.quota.weekly_used_pct ?? '?'}%` : '';
+    toast((r.ok ? '✓ ' : '✗ ') + r.message + quotaStatus, r.ok && !r.quota_error ? 'ok' : 'warn');
+    loadPool();
+  }catch(e){ toast('Test failed: ' + e.message, 'bad'); }
+}
+
+async function keepaliveOne(id){
+  toast('Running silent session renewal…');
+  try{
+    const r = await api(`/admin/accounts/${id}/keepalive`, {method:'POST'});
+    toast(r.ok ? `✓ Keepalive succeeded; expiry updated` : `✗ Keepalive failed: ${r.error||'unknown error'}`, r.ok ? 'ok' : 'bad');
+    loadPool();
+  }catch(e){ toast('Keepalive failed: ' + e.message, 'bad'); }
+}
+
+async function keepaliveAll(){
+  const btn = $('btnKeepaliveAll');
+  if (btn) { btn.disabled = true; btn.innerText = 'Running Keepalive…'; }
+  toast('Renewing sessions and waking VMs for account pool…', 'warn');
+  try{
+    const r = await api('/admin/accounts/keepalive?force=true', {method:'POST'});
+    if (r.status === 'busy') {
+      toast('Keepalive task is already running in the background', 'warn');
+    } else {
+      toast(`✓ Refreshed ${r.refreshed_count || 0} account(s), skipped ${r.skipped_count || 0}`, 'ok');
+    }
+    loadPool();
+  }catch(e){ toast('Keepalive failed: ' + e.message, 'bad'); }
+  finally{
+    if (btn) { btn.disabled = false; btn.innerText = '⚡ Keepalive All Accounts'; }
+  }
+}
+
+async function toggleAcc(id, enabled){
+  try{
+    await api(`/admin/accounts/${id}`, {method:'PATCH', body: JSON.stringify({enabled})});
+    toast(enabled ? 'Account enabled' : 'Account disabled', 'ok'); loadPool();
+  }catch(e){ toast('Operation failed: ' + e.message, 'bad'); }
+}
+
+async function renameAcc(id, old){
+  const label = prompt('New account label:', old);
+  if (label === null || !label.trim()) return;
+  try{
+    await api(`/admin/accounts/${id}`, {method:'PATCH', body: JSON.stringify({label: label.trim()})});
+    toast('Label updated', 'ok'); loadPool();
+  }catch(e){ toast('Rename failed: ' + e.message, 'bad'); }
+}
+
+async function updateCookies(id){
+  const v = prompt('Paste updated Cookie string for this account:');
+  if (!v || !v.trim()) return;
+  try{
+    const r = await api(`/admin/accounts/${id}/cookies`, {method:'POST', body: JSON.stringify({cookie_header: v.trim()})});
+    toast(`Cookies updated (${r.cookie_count} cookies)`, 'ok'); loadPool();
+  }catch(e){ toast('Update failed: ' + e.message, 'bad'); }
+}
+
+async function delAcc(id, label){
+  if (!confirm(`Delete account "${label}"? This cannot be undone.`)) return;
+  try{
+    await api(`/admin/accounts/${id}`, {method:'DELETE'});
+    toast('Account deleted', 'ok'); loadPool();
+  }catch(e){ toast('Delete failed: ' + e.message, 'bad'); }
+}
+
+/* ================= Tasks ================= */
+async function loadTasks(){
+  try{
+    const d = await api('/admin/tasks?limit=60');
+    const ts = d.tasks || [];
+    $('taskCount').textContent = ts.length;
+    if (!ts.length){ $('taskBody').innerHTML = '<tr><td colspan="8" class="empty">No tasks recorded</td></tr>'; return; }
+    $('taskBody').innerHTML = ts.map(t => {
+      const cls = (t.status === 'succeeded' || t.status === 'completed') ? 'ok' : t.status === 'failed' ? 'bad'
+                : t.status === 'processing' ? 'info' : 'warn';
+      let out = '—';
+      if (t.result && t.result.url) out = `<a href="${esc(t.result.url)}" target="_blank">View Result</a> <span class="mono">${fmtBytes(t.result.bytes)}</span>`;
+      else if (t.error) out = `<span style="color:var(--bad)">${esc(t.error).slice(0,120)}</span>`;
+      return `<tr>
+        <td class="mono">${esc(t.id)}</td>
+        <td>${t.kind === 'video' ? '<span class="badge info">Video</span>' : '<span class="badge info">Image</span>'}</td>
+        <td><span class="ellip" title="${esc(t.prompt)}">${esc(t.prompt)}</span></td>
+        <td><span class="badge ${cls}">${esc(t.status)}</span></td>
+        <td class="mono">${t.elapsed ? t.elapsed + 's' : '—'}</td>
+        <td class="mono">${fmtTime(t.created_at)}</td>
+        <td>${out}</td>
+        <td><button class="danger mini" onclick="delTask('${t.id}')">Del</button></td>
+      </tr>`;
+    }).join('');
+  }catch(e){
+    $('taskBody').innerHTML = `<tr><td colspan="8" class="empty">Failed to load: ${esc(e.message)}</td></tr>`;
+  }
+}
+async function delTask(id){
+  try{ await api('/admin/tasks/' + id, {method:'DELETE'}); loadTasks(); }
+  catch(e){ toast('Delete failed: ' + e.message, 'bad'); }
+}
+async function clearTasks(){
+  if (!confirm('Clear all task records? (Generated media files will not be deleted)')) return;
+  try{
+    const r = await api('/admin/tasks/clear', {method:'POST', body: JSON.stringify({keep: 0})});
+    toast(`Cleared ${r.removed} task record(s)`, 'ok'); loadTasks();
+  }catch(e){ toast('Clear failed: ' + e.message, 'bad'); }
+}
+
+/* ================= Media Library ================= */
+let _allMedia = [];
+let _selectedMedia = new Set();
+
+function updateMediaSelectionUI(){
+  const count = _selectedMedia.size;
+  const total = _allMedia.length;
+  const btnSelAll = $('btnSelectAllMedia');
+  const btnDel = $('btnDelSelectedMedia');
+  const countEl = $('selMediaCount');
+
+  if (countEl) countEl.textContent = count;
+  if (btnDel) {
+    btnDel.style.display = count > 0 ? 'inline-flex' : 'none';
+  }
+  if (btnSelAll) {
+    btnSelAll.textContent = (total > 0 && count === total) ? 'Deselect All' : 'Select All';
+  }
+
+  document.querySelectorAll('.tile[data-name]').forEach(el => {
+    const name = el.getAttribute('data-name');
+    const chk = el.querySelector('.tile-check');
+    const isSel = _selectedMedia.has(name);
+    if (chk) chk.checked = isSel;
+    if (isSel) el.classList.add('selected');
+    else el.classList.remove('selected');
+  });
+}
+
+function toggleMediaSelect(name){
+  if (_selectedMedia.has(name)) {
+    _selectedMedia.delete(name);
+  } else {
+    _selectedMedia.add(name);
+  }
+  updateMediaSelectionUI();
+}
+
+function toggleSelectAllMedia(){
+  if (!_allMedia.length) return;
+  if (_selectedMedia.size === _allMedia.length) {
+    _selectedMedia.clear();
+  } else {
+    _selectedMedia = new Set(_allMedia.map(m => m.name));
+  }
+  updateMediaSelectionUI();
+}
+
+async function delSingleMedia(name){
+  if (!confirm(`Delete media file "${name}"? This cannot be undone.`)) return;
+  try{
+    const r = await api('/admin/media/delete', {
+      method: 'POST',
+      body: JSON.stringify({ names: [name] })
+    });
+    if (r.removed > 0) {
+      toast('Deleted', 'ok');
+      _selectedMedia.delete(name);
+      loadMedia();
+    } else {
+      toast('File not found or already deleted', 'warn');
+      loadMedia();
+    }
+  }catch(e){
+    toast('Delete failed: ' + e.message, 'bad');
+  }
+}
+
+async function delSelectedMedia(){
+  const count = _selectedMedia.size;
+  if (!count) return toast('Select media files to delete first', 'warn');
+  if (!confirm(`Permanently delete ${count} selected media file(s)? This cannot be undone.`)) return;
+
+  const names = Array.from(_selectedMedia);
+  const btn = $('btnDelSelectedMedia');
+  if (btn) { btn.disabled = true; btn.textContent = 'Deleting…'; }
+
+  try{
+    const r = await api('/admin/media/delete', {
+      method: 'POST',
+      body: JSON.stringify({ names })
+    });
+    toast(`Deleted ${r.removed || 0} file(s)`, 'ok');
+    _selectedMedia.clear();
+    loadMedia();
+  }catch(e){
+    toast('Batch delete failed: ' + e.message, 'bad');
+  }finally{
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function loadMedia(){
+  try{
+    const d = await api('/admin/media');
+    const ms = d.media || [];
+    _allMedia = ms;
+    const validNames = new Set(ms.map(m => m.name));
+    for (const name of Array.from(_selectedMedia)) {
+      if (!validNames.has(name)) _selectedMedia.delete(name);
+    }
+    $('mediaCount').textContent = ms.length;
+    $('sMedia').textContent = ms.length;
+    if (!ms.length){
+      $('mediaGrid').innerHTML = '<div class="empty">No media files generated yet</div>';
+      updateMediaSelectionUI();
+      return;
+    }
+    $('mediaGrid').innerHTML = ms.map(m => {
+      const isSel = _selectedMedia.has(m.name);
+      return `
+      <div class="tile ${isSel ? 'selected' : ''}" data-name="${esc(m.name)}">
+        <label class="check-tag" title="Select for batch actions" onclick="event.stopPropagation()">
+          <input type="checkbox" class="tile-check" ${isSel ? 'checked' : ''} onchange="toggleMediaSelect('${esc(m.name)}')">
+        </label>
+        <div class="thumb">${m.kind === 'video'
+          ? `<video src="${esc(m.url)}" muted playsinline preload="metadata"></video>`
+          : `<img src="${esc(m.url)}" loading="lazy" alt="">`}</div>
+        <div class="meta">
+          <div class="nm" title="${esc(m.name)}">${esc(m.name)}</div>
+          <div style="margin-top:3px">${fmtBytes(m.bytes)} · ${fmtTime(m.mtime)}</div>
+          <div class="ac">
+            <a class="badge info" href="${esc(m.url)}" target="_blank">Open</a>
+            <a class="badge mute" href="${esc(m.url)}" download>Download</a>
+            <a class="badge bad" href="javascript:void(0)" onclick="delSingleMedia('${esc(m.name)}')">Delete</a>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+    updateMediaSelectionUI();
+  }catch(e){ $('mediaGrid').innerHTML = `<div class="empty">Failed to load: ${esc(e.message)}</div>`; }
+}
+
+/* ================= Playground ================= */
+async function runImage(){
+  const btn = $('imgBtn'), box = $('imgRes');
+  const prompt = $('imgPrompt').value.trim();
+  if (!prompt) return toast('Please enter a prompt', 'warn');
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Generating…';
+  box.className = 'result show';
+  box.innerHTML = '<span class="spin"></span>Submitting image task and polling status…';
+  const t0 = Date.now();
+  try{
+    let r = await api('/v1/images/tasks', {method:'POST',
+      body: JSON.stringify({prompt, size: $('imgSize').value, timeout:600})});
+    const taskId = r.id;
+    const deadline = Date.now() + 15 * 60 * 1000;
+    let failures = 0;
+    while (r.status !== 'completed') {
+      if (Date.now() >= deadline) throw new Error('Timed out after 15 minutes; check the Tasks tab');
+      if (r.status === 'failed') throw new Error(r.error || 'Image generation failed');
+      box.textContent = `Task ${taskId} · ${r.status} · Elapsed ${Math.floor((Date.now()-t0)/1000)}s`;
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      try {
+        r = await api('/v1/images/tasks/' + encodeURIComponent(taskId));
+        failures = 0;
+      } catch (e) {
+        if (++failures >= 6) throw new Error('Status polling failed; check the Tasks tab');
+      }
+    }
+    const it = r.data[0];
+    box.innerHTML = `<b style="color:var(--ok)">✓ Generation Complete</b>
+      <span class="mono" style="color:var(--muted);margin-left:10px">${((Date.now()-t0)/1000).toFixed(1)}s · ${fmtBytes(it.bytes)}</span>
+      <img src="${esc(it.url)}" alt="">
+      <pre class="out">${esc(JSON.stringify(r, null, 2))}</pre>`;
+    loadMedia();
+  }catch(e){
+    box.innerHTML = `<b style="color:var(--bad)">✗ Generation Failed</b><pre class="out">${esc(e.message)}</pre>`;
+  }finally{ btn.disabled = false; btn.textContent = 'Generate Image'; }
+}
+
+async function runVideo(){
+  const btn = $('vidBtn'), box = $('vidRes');
+  const prompt = $('vidPrompt').value.trim();
+  if (!prompt) return toast('Please enter a prompt', 'warn');
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Generating…';
+  box.className = 'result show';
+  box.innerHTML = '<span class="spin"></span>Creating video task…';
+  const t0 = Date.now();
+  try{
+    const t = await api('/v1/videos', {method:'POST', body: JSON.stringify({
+      prompt, duration: parseInt($('vidDur').value) || 5, size: $('vidSize').value})});
+    const tick = async () => {
+      const s = await api('/v1/videos/' + t.id);
+      const el = ((Date.now()-t0)/1000).toFixed(0);
+      if (s.status === 'succeeded' || s.status === 'completed'){
+        const vurl = (s.result && s.result.url) || s.url || '';
+        const vbytes = (s.result && s.result.bytes) || 0;
+        box.innerHTML = `<b style="color:var(--ok)">✓ Generation Complete</b>
+          <span class="mono" style="color:var(--muted);margin-left:10px">${el}s · ${fmtBytes(vbytes)}</span>
+          <video src="${esc(vurl)}" controls playsinline></video>
+          <pre class="out">${esc(JSON.stringify(s, null, 2))}</pre>`;
+        btn.disabled = false; btn.textContent = 'Generate Video';
+        loadMedia(); loadTasks();
+      }else if (s.status === 'failed'){
+        box.innerHTML = `<b style="color:var(--bad)">✗ Generation Failed</b><pre class="out">${esc(s.error||'')}</pre>`;
+        btn.disabled = false; btn.textContent = 'Generate Video';
+      }else{
+        box.innerHTML = `<span class="spin"></span>Task ${esc(s.status)} · Elapsed ${el}s (videos typically take 60–120s)…`;
+        setTimeout(tick, 4000);
+      }
+    };
+    tick();
+  }catch(e){
+    box.innerHTML = `<b style="color:var(--bad)">✗ Failed to create task</b><pre class="out">${esc(e.message)}</pre>`;
+    btn.disabled = false; btn.textContent = 'Generate Video';
+  }
+}
+
+/* ================= Repository Version Check ================= */
+let _notifiedSha = localStorage.getItem('muse2api_notified_sha') || '';
+let _dismissedSha = localStorage.getItem('muse2api_dismissed_sha') || '';
+let _lastRepoStatus = null;
+
+function toggleRepoPanel(){
+  const el = $('repoPanel');
+  if (!el) return;
+  const show = el.style.display === 'none';
+  el.style.display = show ? 'block' : 'none';
+  if (show) loadRepoStatus(false);
+}
+
+function dismissUpdateBanner(){
+  if (_lastRepoStatus && _lastRepoStatus.remote_sha){
+    _dismissedSha = _lastRepoStatus.remote_sha;
+    localStorage.setItem('muse2api_dismissed_sha', _dismissedSha);
+  }
+  $('updateBanner').classList.remove('show');
+}
+
+async function loadRepoStatus(force){
+  try{
+    let s = await api('/admin/update/check' + (force ? '?force=true' : ''));
+    if (!s.remote_sha){
+      try{
+        const gr = await fetch('https://api.github.com/repos/ninja-c9/muse2api/commits?sha=main&per_page=5');
+        if (gr.ok){
+          const commits = await gr.json();
+          if (Array.isArray(commits) && commits.length){
+            s.remote_sha = (commits[0].sha || '').slice(0, 7);
+            s.remote_msg = ((commits[0].commit || {}).message || '').split('\n')[0];
+            s.recent_commits = commits.map(c => ({
+              sha: (c.sha || '').slice(0, 7),
+              message: ((c.commit || {}).message || '').split('\n')[0],
+              date: ((c.commit || {}).committer || {}).date || '',
+              url: c.html_url || 'https://github.com/ninja-c9/muse2api'
+            }));
+          }
+        }
+      }catch(_){}
+    }
+    _lastRepoStatus = s;
+    const badge = $('repoBadge');
+    const topBtn = $('btnRepoTop');
+    const desc = $('repoStatusDesc');
+    const box = $('repoCommitsBox');
+    const banner = $('updateBanner');
+    const lVer = 'v' + (s.local_version || '1.0.0');
+    const rVer = 'v' + (s.remote_version || s.local_version || '1.0.0');
+
+    badge.className = 'badge ok';
+    badge.textContent = `✓ Up to date ${lVer}`;
+    topBtn.classList.remove('updpill-alert');
+    topBtn.innerHTML = `📦 <span id="repoTopTxt">${esc(lVer)}</span>`;
+    banner.classList.remove('show');
+
+    desc.innerHTML = `Current build version: <code>${esc(lVer)}</code> · GitHub repository: <a href="https://github.com/ninja-c9/muse2api" target="_blank">ninja-c9/muse2api</a>`;
+
+    let html = '';
+    if (Array.isArray(s.highlights) && s.highlights.length){
+      html += `<div style="margin-bottom:8px"><b style="color:var(--text)">✨ Release Highlights (${esc(rVer)}):</b><ul style="margin:4px 0 0 18px;padding:0;color:var(--muted)">` +
+        s.highlights.map(h => `<li>${esc(h)}</li>`).join('') + `</ul></div>`;
+    }
+    if (Array.isArray(s.recent_commits) && s.recent_commits.length){
+      html += `<div><b style="color:var(--text)">📜 Recent Commits:</b><div style="margin-top:5px;display:flex;flex-direction:column;gap:4px">` +
+        s.recent_commits.slice(0, 5).map(c =>
+          `<div style="display:flex;gap:8px;align-items:center"><a href="${esc(c.url)}" target="_blank" class="mono" style="color:var(--accent)">[${esc(c.sha)}]</a><span>${esc(c.message)}</span><span class="mono" style="margin-left:auto">${esc((c.date||'').replace('T',' ').replace('Z',''))}</span></div>`
+        ).join('') + `</div></div>`;
+    }
+    if (box) box.innerHTML = html || '<span style="color:var(--muted)">No commit history loaded</span>';
+    if (force) toast('✓ Running latest version ' + lVer, 'ok');
+  }catch(e){
+    if ($('repoBadge')) { $('repoBadge').className = 'badge mute'; $('repoBadge').textContent = 'Auth Required'; }
+  }
+}
+
+/* ================= Status Polling ================= */
+async function loadStatus(){
+  try{
+    const d = await api('/admin/status');
+    $('pSvc').className = 'pill on';
+    $('pSvc').innerHTML = '<span class="led"></span>Service <b>Healthy</b>';
+    $('pBr').className = 'pill ' + (d.browser_running ? 'on' : 'off');
+    $('pBr').innerHTML = `<span class="led"></span>Browser <b>${d.browser_running ? 'Running' : 'Idle'}</b>`;
+    $('sMedia').textContent = d.media_count ?? 0;
+    if (d.base_url){ $('dBase').textContent = d.base_url; $('inBase').value = d.base_url; }
+  }catch(e){
+    if (authOK === false){
+      $('pSvc').className = 'pill';
+      $('pSvc').innerHTML = '<span class="led"></span>Service <b>Auth Required</b>';
+    } else {
+      $('pSvc').className = 'pill off';
+      $('pSvc').innerHTML = '<span class="led"></span>Service <b>' + esc(e.message).slice(0,28) + '</b>';
+    }
+  }
+}
+
+function refreshAll(){ loadStatus(); loadPool(); loadApikey(); loadRepoStatus(false); }
+
+refreshAll();
+setInterval(() => {
+  loadStatus(); loadPool();
+  if ($('tab-tasks').classList.contains('active')) loadTasks();
+}, 8000);
+setInterval(() => {
+  loadRepoStatus(false);
+}, 60000);
+</script>
+</body>
+</html>

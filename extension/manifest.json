@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "Muse2API Cookie Importer",
+  "version": "1.0.0",
+  "description": "One-click import of muse.ai session cookies into your muse2api server.",
+  "permissions": ["cookies", "storage", "activeTab"],
+  "host_permissions": [
+    "https://muse.ai/*",
+    "https://*.muse.ai/*",
+    "http://*/*",
+    "https://*/*"
+  ],
+  "action": {
+    "default_title": "Muse2API Cookie Importer",
+    "default_popup": "popup.html"
+  }
+}
